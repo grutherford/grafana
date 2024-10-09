@@ -3,17 +3,13 @@ package dbimpl
 import (
 	"context"
 	"database/sql"
-	"strings"
 
 	"github.com/grafana/grafana/pkg/storage/unified/sql/db"
 )
 
+// NewDB converts a *sql.DB to a db.DB.
 func NewDB(d *sql.DB, driverName string) db.DB {
-	// remove the suffix from the instrumented driver created by the older
-	// Grafana code
-	driverName = strings.TrimSuffix(driverName, "WithHooks")
-
-	ret := sqldb{
+	ret := sqlDB{
 		DB:         d,
 		driverName: driverName,
 	}
@@ -22,16 +18,16 @@ func NewDB(d *sql.DB, driverName string) db.DB {
 	return ret
 }
 
-type sqldb struct {
+type sqlDB struct {
 	*sql.DB
 	db.WithTxFunc
 	driverName string
 }
 
-func (d sqldb) DriverName() string {
+func (d sqlDB) DriverName() string {
 	return d.driverName
 }
 
-func (d sqldb) BeginTx(ctx context.Context, opts *sql.TxOptions) (db.Tx, error) {
+func (d sqlDB) BeginTx(ctx context.Context, opts *sql.TxOptions) (db.Tx, error) {
 	return d.DB.BeginTx(ctx, opts)
 }

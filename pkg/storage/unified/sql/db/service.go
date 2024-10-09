@@ -96,22 +96,36 @@ func NewWithTxFunc(x BeginTxFunc) WithTxFunc {
 		func(ctx context.Context, opts *sql.TxOptions, f TxFunc) error {
 			t, err := x(ctx, opts)
 			if err != nil {
-				return fmt.Errorf("begin tx: %w", err)
+				return fmt.Errorf(oneErrFmt, beginStr, err)
 			}
 
 			if err := f(ctx, t); err != nil {
 				if rollbackErr := t.Rollback(); rollbackErr != nil {
-					return fmt.Errorf("tx err: %w; rollback err: %w", err,
+					return fmt.Errorf(twoErrFmt, txOpStr, err, rollbackStr,
 						rollbackErr)
 				}
-				return fmt.Errorf("tx err: %w", err)
+				return fmt.Errorf(oneErrFmt, txOpStr, err)
 			}
 
 			if err = t.Commit(); err != nil {
-				return fmt.Errorf("commit err: %w", err)
+				return fmt.Errorf(oneErrFmt, commitStr, err)
 			}
 
 			return nil
 		},
 	)
 }
+
+// Constants that allow testing that the correct scenario was hit.
+const (
+	oneErrFmt = "%s: %w"
+	twoErrFmt = oneErrFmt + "; " + oneErrFmt
+
+	// keep the following ones in sync with the matching ones in
+	// `service_test.go`.
+
+	txOpStr     = "transactional operation"
+	beginStr    = "begin"
+	commitStr   = "commit"
+	rollbackStr = "rollback"
+)
